@@ -1,5 +1,6 @@
 apply plugin: "com.android.application"
 apply plugin: "com.facebook.react"
+apply plugin: "org.jetbrains.kotlin.android"
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -47,7 +48,8 @@ react {
     // hermesCommand = "$rootDir/my-custom-hermesc/bin/hermesc"
     //
     //   The list of flags to pass to the Hermes compiler. By default is "-O", "-output-source-map"
-    // hermesFlags = ["-O", "-output-source-map"]
+    hermesFlags = ["-O", "-output-source-map"]
+    autolinkLibrariesWithApp()
 }
 
 /**
@@ -70,8 +72,8 @@ def jscFlavor = 'org.webkit:android-jsc:+'
 
 android {
     ndkVersion rootProject.ext.ndkVersion
-
-    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdk rootProject.ext.compileSdkVersion
 
     namespace "com.treemultiselectexample"
     defaultConfig {
@@ -101,6 +103,16 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+    externalNativeBuild {
+        cmake {
+          version = "3.31.1"
+            // Tells Gradle to find the root CMake build script in the same
+            // directory as the module's build.gradle file. Gradle requires this
+            // build script to add your CMake project as a build dependency and
+            // pull your native sources into your Android project.
+            path "CMakeLists.txt"
+        }
+    }
 }
 
 dependencies {
@@ -125,6 +137,5 @@ project.ext.vectoricons = [
     iconFontNames: [ 'MaterialIcons.ttf', 'FontAwesome.ttf', 'MaterialCommunityIcons.ttf', 'Ionicons.ttf'] // Name of the font files you want to copy
 ]
 
-apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesAppBuildGradle(project)
 apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
 
