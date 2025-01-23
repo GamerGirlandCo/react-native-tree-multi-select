@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { InteractionManager } from 'react-native';
 import type {
+  SortableCustomization,
   TreeNode,
   TreeViewProps,
   TreeViewRef
@@ -18,13 +19,19 @@ import {
   expandNodes,
   collapseNodes
 } from './helpers';
+import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
 import { useTreeViewStore } from './store/treeView.store';
 import usePreviousState from './utils/usePreviousState';
 import { useShallow } from "zustand/react/shallow";
 import uuid from "react-native-uuid";
 import useDeepCompareEffect from "./utils/useDeepCompareEffect";
 import { typedMemo } from './utils/typedMemo';
-
+import { DEFAULT_SORTABLE_PROPS } from './constants/treeView.constants';
+import DraggableContextProvider from './contexts/DraggableContext';
+configureReanimatedLogger({
+  strict: false,
+  level: ReanimatedLogLevel.error
+})
 function _innerTreeView<ID>(props: TreeViewProps<ID>, ref: React.ForwardedRef<TreeViewRef<ID>>) {
     const {
       data,
@@ -47,6 +54,7 @@ function _innerTreeView<ID>(props: TreeViewProps<ID>, ref: React.ForwardedRef<Tr
       ExpandCollapseTouchableComponent,
 
       CustomNodeRowComponent,
+      canSort
     } = props;
 
     const storeId = useMemo(() => uuid.v4(), []);
@@ -187,21 +195,25 @@ function _innerTreeView<ID>(props: TreeViewProps<ID>, ref: React.ForwardedRef<Tr
       };
     }, [cleanUpTreeViewStore]);
 
+    const sortableProps = useMemo(() => ({...DEFAULT_SORTABLE_PROPS, ...props.draggableProps}), [props]) as Required<SortableCustomization>
+
     return (
-      <NodeList
-        storeId={storeId}
+        <DraggableContextProvider<ID> cust={sortableProps} indentationMultiplier={indentationMultiplier}>
+          <NodeList
+              storeId={storeId}
+              canSort={canSort}
+              treeFlashListProps={treeFlashListProps}
+              checkBoxViewStyleProps={checkBoxViewStyleProps}
+              indentationMultiplier={indentationMultiplier}
 
-        treeFlashListProps={treeFlashListProps}
-        checkBoxViewStyleProps={checkBoxViewStyleProps}
-        indentationMultiplier={indentationMultiplier}
+              CheckboxComponent={CheckboxComponent}
+              ExpandCollapseIconComponent={ExpandCollapseIconComponent}
+              ExpandCollapseTouchableComponent={ExpandCollapseTouchableComponent}
 
-        CheckboxComponent={CheckboxComponent}
-        ExpandCollapseIconComponent={ExpandCollapseIconComponent}
-        ExpandCollapseTouchableComponent={ExpandCollapseTouchableComponent}
-
-        CustomNodeRowComponent={CustomNodeRowComponent}
-      />
-    );
+              CustomNodeRowComponent={CustomNodeRowComponent}
+           />
+        </DraggableContextProvider>
+    )
 }
 const _TreeView = React.forwardRef(_innerTreeView) as <ID>(
   props: TreeViewProps<ID> & { ref?: React.ForwardedRef<TreeViewRef<ID>> }
