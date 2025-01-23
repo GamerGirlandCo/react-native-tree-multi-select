@@ -2,9 +2,9 @@ jest.mock('zustand');
 
 import { act } from 'react-test-renderer';
 import { getTreeViewStore } from '../store/treeView.store';
-import { TreeNode } from 'src/types/treeView.types';
+import { TreeNode } from '../types/treeView.types';
 import { initializeNodeMaps } from '../helpers';
-import { testStoreId } from "../constants/tests.constants";
+import { testIndexMapper, testStoreId } from "../constants/tests.constants";
 
 describe('initNodeMap helper', () => {
     const useTreeViewStore = getTreeViewStore(testStoreId);
@@ -19,12 +19,12 @@ describe('initNodeMap helper', () => {
                 id: '1',
                 name: 'Node 1',
                 children: [
-                    { id: '1.1', name: 'Node 1.1' },
-                    { id: '1.2', name: 'Node 1.2', children: [{ id: '1.2.1', name: 'Node 1.2.1' }] },
+                    { id: '1.1', name: 'Node 1.1', index: 1 },
+                    { id: '1.2', name: 'Node 1.2', children: [{ id: '1.2.1', name: 'Node 1.2.1', index: 1 }], index: 2 },
                 ],
             },
             { id: '2', name: 'Node 2' },
-        ];
+        ].map(testIndexMapper);
 
         act(() => {
             initializeNodeMaps(testStoreId, initialData);
@@ -65,7 +65,7 @@ describe('initNodeMap helper [number id]', () => {
                 ],
             },
             { id: 5, name: 'Node 2' },
-        ];
+        ].map(testIndexMapper<number>);
 
         act(() => {
             initializeNodeMaps(testStoreId, initialData);

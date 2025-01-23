@@ -7,7 +7,7 @@ import {
 } from '../helpers';
 import { act } from 'react-test-renderer';
 import { tree3d2b } from '../__mocks__/generateTree.mock';
-import { testStoreId } from "../constants/tests.constants";
+import { testIndexMapper, testStoreId } from "../constants/tests.constants";
 
 describe('toggleCheckboxes', () => {
     const useTreeViewStore = getTreeViewStore(testStoreId);
@@ -561,7 +561,7 @@ describe('toggleCheckboxes', () => {
                     }
                 ]
             }
-        ];
+        ].map(testIndexMapper);
 
         // Reinitialize the node maps with the extended tree
         act(() => {

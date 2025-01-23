@@ -4,7 +4,7 @@ import { act } from 'react-test-renderer';
 import { useTreeViewStore } from '../store/treeView.store';
 import { createRandomNumberSet, generateTree } from '../__mocks__/generateTree.mock';
 import { TreeNode } from '../types/treeView.types';
-import { testStoreId } from "../constants/tests.constants";
+import { testIndexMapper, testStoreId } from "../constants/tests.constants";
 
 describe('TreeViewStore', () => {
     const treeViewStore = useTreeViewStore(testStoreId);
@@ -88,7 +88,7 @@ describe('TreeViewStore', () => {
                     ]
                 },
             ],
-        }];
+        }].map(testIndexMapper);
         act(() => {
             treeViewStore.getState().updateInitialTreeViewData(val1);
         });

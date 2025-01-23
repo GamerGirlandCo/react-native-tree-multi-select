@@ -1,3 +1,4 @@
+import { testIndexMapper } from "../constants/tests.constants";
 import { TreeNode, __FlattenedTreeNode__ } from "../types/treeView.types";
 
 export const tree3d2b = [
@@ -74,7 +75,7 @@ export const tree3d2b = [
         "name": "node3",
         "children": [] // Node with empty children array
     }
-];
+].map(testIndexMapper);
 
 export function generateTree(
     depth: number,
@@ -86,7 +87,8 @@ export function generateTree(
     for (let i = 1; i <= breadth; i++) {
         let node: TreeNode = {
             id: `${prefix}${i}`,
-            name: `node${prefix}${i}`
+            name: `node${prefix}${i}`,
+            index: i
         };
 
         if (depth > 1) {
