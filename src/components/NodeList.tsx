@@ -1,237 +1,292 @@
-import React from "react";
-import {
-    View,
-    StyleSheet,
-
-    TouchableOpacity,
-} from "react-native";
-import { FlashList } from "@shopify/flash-list";
+import React from 'react';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 
 import type {
-    CheckboxValueType,
-    __FlattenedTreeNode__,
-    NodeListProps,
-    NodeProps,
-} from "../types/treeView.types";
+  CheckboxValueType,
+  __FlattenedTreeNode__,
+  NodeListProps,
+  NodeProps,
+  TreeNode
+} from '../types/treeView.types';
 
-import { useTreeViewStore } from "../store/treeView.store";
+import { useTreeViewStore } from '../store/treeView.store';
 import {
-    getFilteredTreeData,
-    getFlattenedTreeData,
-    getInnerMostChildrenIdsInTree,
-    handleToggleExpand,
-    toggleCheckboxes
-} from "../helpers";
-import { CheckboxView } from "./CheckboxView";
-import { CustomExpandCollapseIcon } from "./CustomExpandCollapseIcon";
-import { defaultIndentationMultiplier } from "../constants/treeView.constants";
+  getFilteredTreeData,
+  getFlattenedTreeData,
+  getInnerMostChildrenIdsInTree,
+  handleToggleExpand,
+  toggleCheckboxes,
+} from '../helpers';
+import { CheckboxView } from './CheckboxView';
+import { CustomExpandCollapseIcon } from './CustomExpandCollapseIcon';
+import { defaultIndentationMultiplier } from '../constants/treeView.constants';
 import { useShallow } from 'zustand/react/shallow';
-import { typedMemo } from "../utils/typedMemo";
+import { typedMemo } from '../utils/typedMemo';
+import DraggableNodeList from './DraggableNodeList';
+import { useDraggableContext } from '../contexts/DraggableContext';
 
 const NodeList = typedMemo(_NodeList);
 export default NodeList;
 
 function _NodeList<ID>(props: NodeListProps<ID>) {
-    const {
-        storeId,
+  const {
+    storeId,
 
-        treeFlashListProps,
-        checkBoxViewStyleProps,
-        indentationMultiplier,
+    treeFlashListProps,
+    checkBoxViewStyleProps,
+    indentationMultiplier,
 
-        CheckboxComponent,
-        ExpandCollapseIconComponent,
-        ExpandCollapseTouchableComponent,
-        CustomNodeRowComponent
-    } = props;
+    CheckboxComponent,
+    ExpandCollapseIconComponent,
+    ExpandCollapseTouchableComponent,
+    CustomNodeRowComponent,
+    canSort,
+    onSort: sortEnd,
+  } = props;
 
-    const {
-        expanded,
-        initialTreeViewData,
-        updateInnerMostChildrenIds,
-        searchKeys,
-        searchText
-    } = useTreeViewStore<ID>(storeId)(useShallow(
-        state => ({
-            expanded: state.expanded,
-            initialTreeViewData: state.initialTreeViewData,
-            updateInnerMostChildrenIds: state.updateInnerMostChildrenIds,
-            searchKeys: state.searchKeys,
-            searchText: state.searchText,
-        })
-    ));
+  const {
+    expanded,
+    initialTreeViewData,
+    updateInnerMostChildrenIds,
+    searchKeys,
+    searchText,
+    updateInitialTreeviewData
+  } = useTreeViewStore<ID>(storeId)(
+    useShallow((state) => ({
+      expanded: state.expanded,
+      initialTreeViewData: state.initialTreeViewData,
+      updateInnerMostChildrenIds: state.updateInnerMostChildrenIds,
+      searchKeys: state.searchKeys,
+      searchText: state.searchText,
+      updateInitialTreeviewData: state.updateInitialTreeViewData,
+    }))
+  );
 
-    // First we filter the tree as per the search term and keys
-    const filteredTree = React.useMemo(() => getFilteredTreeData<ID>(
+  // First we filter the tree as per the search term and keys
+  const filteredTree = React.useMemo(
+    () =>
+      getFilteredTreeData<ID>(
         initialTreeViewData,
         searchText.trim().toLowerCase(),
         searchKeys
-    ), [initialTreeViewData, searchText, searchKeys]);
+      ),
+    [initialTreeViewData, searchText, searchKeys]
+  );
 
-    // Then we flatten the tree to make it "render-compatible" in a "flat" list
-    const flattenedFilteredNodes = React.useMemo(() => getFlattenedTreeData<ID>(
-        filteredTree,
-        expanded,
-    ), [filteredTree, expanded]);
+  // Then we flatten the tree to make it "render-compatible" in a "flat" list
+  const flattenedFilteredNodes = React.useMemo(
+    () => getFlattenedTreeData<ID>(filteredTree, expanded),
+    [filteredTree, expanded]
+  );
 
-    // And update the innermost children id -> required to un/select filtered tree
-    React.useEffect(() => {
-        const updatedInnerMostChildrenIds = getInnerMostChildrenIdsInTree<ID>(
-            filteredTree
-        );
-        updateInnerMostChildrenIds(updatedInnerMostChildrenIds);
-    }, [filteredTree, updateInnerMostChildrenIds]);
+  // And update the innermost children id -> required to un/select filtered tree
+  React.useEffect(() => {
+    const updatedInnerMostChildrenIds =
+      getInnerMostChildrenIdsInTree<ID>(filteredTree);
+    updateInnerMostChildrenIds(updatedInnerMostChildrenIds);
+  }, [filteredTree, updateInnerMostChildrenIds]);
 
-    const nodeRenderer = React.useCallback((
-        { item }: { item: __FlattenedTreeNode__<ID>; }
-    ) => {
-        return (
-            <Node<ID>
-                storeId={storeId}
+  const onSort = React.useCallback(
+    (newIndex: number, oldIndex: number, newData: TreeNode<ID>[]) => {
+      sortEnd?.(newIndex, oldIndex, newData);
+      updateInitialTreeviewData(newData)
+    },
+    [sortEnd, updateInitialTreeviewData]
+  );
 
-                node={item}
-                level={item.level || 0}
+  const { beginDrag } = useDraggableContext<ID>();
 
-                checkBoxViewStyleProps={checkBoxViewStyleProps}
-                indentationMultiplier={indentationMultiplier}
-
-                CheckboxComponent={CheckboxComponent}
-                ExpandCollapseIconComponent={ExpandCollapseIconComponent}
-                ExpandCollapseTouchableComponent={ExpandCollapseTouchableComponent}
-                CustomNodeRowComponent={CustomNodeRowComponent}
-            />
-        );
-    }, [
-        storeId,
-        CheckboxComponent,
-        ExpandCollapseIconComponent,
-        ExpandCollapseTouchableComponent,
-        CustomNodeRowComponent,
-        checkBoxViewStyleProps,
-        indentationMultiplier
-    ]);
-
-    return (
-        <FlashList
-            estimatedItemSize={36}
-            removeClippedSubviews={true}
-            keyboardShouldPersistTaps="handled"
-            drawDistance={50}
-            ListHeaderComponent={<HeaderFooterView />}
-            ListFooterComponent={<HeaderFooterView />}
-            {...treeFlashListProps}
-            data={flattenedFilteredNodes}
-            renderItem={nodeRenderer}
+  const nodeRenderer = React.useCallback(
+    ({ item, index }: { item: __FlattenedTreeNode__<ID>; index: number }) => {
+      return (
+        <Node<ID>
+          index={index}
+          onDragStart={canSort ? beginDrag : () => {}}
+          storeId={storeId}
+          node={item}
+          level={item.level || 0}
+          checkBoxViewStyleProps={checkBoxViewStyleProps}
+          indentationMultiplier={indentationMultiplier}
+          CheckboxComponent={CheckboxComponent}
+          ExpandCollapseIconComponent={ExpandCollapseIconComponent}
+          ExpandCollapseTouchableComponent={ExpandCollapseTouchableComponent}
+          CustomNodeRowComponent={CustomNodeRowComponent}
         />
+      );
+    },
+    [
+      canSort,
+      storeId,
+      checkBoxViewStyleProps,
+      indentationMultiplier,
+      CheckboxComponent,
+      ExpandCollapseIconComponent,
+      ExpandCollapseTouchableComponent,
+      CustomNodeRowComponent,
+      beginDrag,
+    ]
+  );
+  if (canSort) {
+    return (
+      <DraggableNodeList<ID>
+        placeholderStyle={props.placeholderStyle}
+        onSort={onSort}
+        storeId={storeId}
+        estimatedItemSize={36}
+        removeClippedSubviews={true}
+        keyboardShouldPersistTaps="handled"
+        drawDistance={50}
+        ListHeaderComponent={<HeaderFooterView />}
+        ListFooterComponent={<HeaderFooterView />}
+        {...treeFlashListProps}
+        data={flattenedFilteredNodes}
+        renderItem={nodeRenderer}
+      />
     );
-};
+  }
+
+  return (
+    <FlashList
+      estimatedItemSize={36}
+      removeClippedSubviews={true}
+      keyboardShouldPersistTaps="handled"
+      drawDistance={50}
+      ListHeaderComponent={<HeaderFooterView />}
+      ListFooterComponent={<HeaderFooterView />}
+      {...treeFlashListProps}
+      data={flattenedFilteredNodes}
+      renderItem={nodeRenderer}
+    />
+  );
+}
 
 function HeaderFooterView() {
-    return (
-        <View style={styles.defaultHeaderFooter} />
-    );
+  return <View style={styles.defaultHeaderFooter} />;
 }
 
 function getValue(
-    isChecked: boolean,
-    isIndeterminate: boolean
+  isChecked: boolean,
+  isIndeterminate: boolean
 ): CheckboxValueType {
-    if (isIndeterminate) {
-        return 'indeterminate';
-    } else if (isChecked) {
-        return true;
-    } else {
-        return false;
-    }
+  if (isIndeterminate) {
+    return 'indeterminate';
+  } else if (isChecked) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 const Node = typedMemo(_Node);
 function _Node<ID>(props: NodeProps<ID>) {
-    const {
-        storeId,
+  const {
+    storeId,
 
-        node,
-        level,
+    node,
+    level,
 
-        checkBoxViewStyleProps,
-        indentationMultiplier = defaultIndentationMultiplier,
+    checkBoxViewStyleProps,
+    indentationMultiplier = defaultIndentationMultiplier,
 
-        ExpandCollapseIconComponent = CustomExpandCollapseIcon,
-        CheckboxComponent = CheckboxView,
-        ExpandCollapseTouchableComponent = TouchableOpacity,
-        CustomNodeRowComponent
-    } = props;
+    ExpandCollapseIconComponent = CustomExpandCollapseIcon,
+    CheckboxComponent = CheckboxView,
+    ExpandCollapseTouchableComponent = TouchableOpacity,
+    CustomNodeRowComponent,
+    index,
+    onDragStart: drag,
+  } = props;
 
-    const {
-        isExpanded,
-        value,
-    } = useTreeViewStore<ID>(storeId)(useShallow(
-        state => ({
-            isExpanded: state.expanded.has(node.id),
-            value: getValue(
-                state.checked.has(node.id), // isChecked
-                state.indeterminate.has(node.id) // isIndeterminate
-            ),
-        })
-    ));
+  const { isExpanded, value } = useTreeViewStore<ID>(storeId)(
+    useShallow((state) => ({
+      isExpanded: state.expanded.has(node.id),
+      value: getValue(
+        state.checked.has(node.id), // isChecked
+        state.indeterminate.has(node.id) // isIndeterminate
+      ),
+    }))
+  );
 
-    const _onToggleExpand = React.useCallback(() => {
-        handleToggleExpand(storeId, node.id);
-    }, [storeId, node.id]);
+  const _onToggleExpand = React.useCallback(() => {
+    handleToggleExpand(storeId, node.id);
+  }, [storeId, node.id]);
 
-    const _onCheck = React.useCallback(() => {
-        toggleCheckboxes(storeId, [node.id]);
-    }, [storeId, node.id]);
+  const _onCheck = React.useCallback(() => {
+    toggleCheckboxes(storeId, [node.id]);
+  }, [storeId, node.id]);
 
-    if (!CustomNodeRowComponent) {
-        return (
-            <View style={[
-                styles.nodeCheckboxAndArrowRow,
-                { paddingStart: level * indentationMultiplier }
-            ]}>
-                <CheckboxComponent
-                    text={node.name}
-                    onValueChange={_onCheck}
-                    value={value}
-                    {...checkBoxViewStyleProps} />
+  const onDragStart = React.useCallback(() => {
+    drag?.(node.id, index, node.level!);
+  }, [index, drag, node]);
 
-                {node.children?.length ? (
-                    <ExpandCollapseTouchableComponent
-                        style={styles.nodeExpandableArrowTouchable}
-                        onPress={_onToggleExpand}>
-                        <ExpandCollapseIconComponent
-                            isExpanded={isExpanded}
-                        />
-                    </ExpandCollapseTouchableComponent>
-                ) : null}
-            </View>
-        );
+  /* const level = useSharedValue(levelProp);
+  const { spacerIndentLevel, activeKey, sortableConfig } =
+    useDraggableContext<ID>();
+  const { animationConfig } = sortableConfig.current;
+  const paddingAmt = useDerivedValue(() => {
+    if (activeKey && node.id === activeKey) {
+      return withSpring(
+        spacerIndentLevel.value * indentationMultiplier,
+        animationConfig
+      );
     }
-    else {
-        return (
-            <CustomNodeRowComponent
-                node={node}
-                level={level}
-                checkedValue={value}
-                isExpanded={isExpanded}
-                onCheck={_onCheck}
-                onExpand={_onToggleExpand} />
-        );
-    }
-};
+    return withSpring(levelProp * indentationMultiplier, animationConfig);
+  }, [spacerIndentLevel, activeKey, levelProp, node]);
+  const paddingStyle = useAnimatedStyle(() => {
+    return { paddingStart: paddingAmt.value };
+  }, [level, paddingAmt]); */
+
+  if (!CustomNodeRowComponent) {
+    return (
+      <TouchableOpacity onLongPress={onDragStart}>
+        <View style={[styles.nodeCheckboxAndArrowRow, { paddingStart: level * indentationMultiplier }]}>
+          <CheckboxComponent
+            text={node.name}
+            onValueChange={_onCheck}
+            value={value}
+            {...checkBoxViewStyleProps}
+          />
+
+          {node.children?.length ? (
+            <ExpandCollapseTouchableComponent
+              style={styles.nodeExpandableArrowTouchable}
+              onPress={_onToggleExpand}
+            >
+              <ExpandCollapseIconComponent isExpanded={isExpanded} />
+            </ExpandCollapseTouchableComponent>
+          ) : null}
+        </View>
+      </TouchableOpacity>
+    );
+  } else {
+    return (
+      <TouchableOpacity onLongPress={onDragStart}>
+        <CustomNodeRowComponent
+          node={node}
+          level={level}
+          checkedValue={value}
+          isExpanded={isExpanded}
+          onCheck={_onCheck}
+          onExpand={_onToggleExpand}
+        />
+      </TouchableOpacity>
+    );
+  }
+}
 
 const styles = StyleSheet.create({
-    defaultHeaderFooter: {
-        padding: 5
-    },
-    nodeExpandableArrowTouchable: {
-        flex: 1
-    },
-    nodeCheckboxAndArrowRow: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        minWidth: "100%"
-    }
+  defaultHeaderFooter: {
+    padding: 5,
+  },
+  nodeExpandableArrowTouchable: {
+    flex: 1,
+  },
+  nodeCheckboxAndArrowRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minWidth: '100%',
+    minHeight: '100%',
+    height: '100%',
+  },
 });
-
