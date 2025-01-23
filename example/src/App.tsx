@@ -10,6 +10,7 @@ import LargeDataScreen from './screens/LargeDataScreen';
 import CustomCheckboxScreen from './screens/CustomCheckboxScreen';
 import CustomArrowScreen from './screens/CustomArrowScreen';
 import CustomNodeRowViewScreen from './screens/CustomNodeRowViewScreen';
+import DraggableScreen from './screens/DraggableScreen';
 import {
   OnlyToParentSmallDataScreen,
   OnlyToChildrenSmallDataScreen,
@@ -95,6 +96,16 @@ const data: ShowcaseExampleScreenSectionType[] = [
       },
     ],
   },
+  {
+    title: 'Draggable',
+    data: [
+      {
+        name: 'Draggable Tree View',
+        slug: 'draggable-tree-view',
+        getScreen: () =>DraggableScreen
+      }
+    ]
+  }
 ];
 
 export default function App() {
