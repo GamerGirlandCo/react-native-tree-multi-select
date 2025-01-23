@@ -4,10 +4,12 @@ import type {
     TouchableOpacityProps,
     ViewStyle
 } from "react-native";
-import type { FlashListProps } from "@shopify/flash-list";
+import type { FlashListProps, ListRenderItemInfo } from "@shopify/flash-list";
 import {
     type Props as RNPaperCheckboxAndroidProps
 } from 'react-native-paper/src/components/Checkbox/CheckboxAndroid';
+import { PanGestureHandlerProperties } from "react-native-gesture-handler";
+import { StyleProps, WithSpringConfig } from "react-native-reanimated";
 
 export type CheckboxValueType = boolean | 'indeterminate';
 
@@ -19,6 +21,7 @@ export interface TreeNode<ID = string> {
     id: ID;
     name: string;
     children?: TreeNode<ID>[];
+    index: number;
     [key: string]: any;
 }
 
@@ -31,6 +34,7 @@ export type TreeFlatListProps<ItemT = any> = Omit<
     FlashListProps<ItemT>,
     "data"
     | "renderItem"
+    | "horizontal"
 >;
 
 export interface NodeRowProps<ID = string> {
@@ -42,6 +46,7 @@ export interface NodeRowProps<ID = string> {
 
     onCheck: () => void;
     onExpand: () => void;
+
 }
 
 export interface TreeItemCustomizations<ID> {
@@ -60,11 +65,31 @@ export interface NodeProps<ID> extends TreeItemCustomizations<ID> {
     node: __FlattenedTreeNode__<ID>;
     level: number;
     storeId: string;
+
+    index: number;
+    onDragStart: (id: ID, index: number, level: number) => void;
 }
 
-export interface NodeListProps<ID> extends TreeItemCustomizations<ID> {
+export type SortableProps<ID> =  {
+  canSort?: boolean;
+    onSort?: (oldIndex: number, newIndex: number, newData: TreeNode<ID>[]) => void;
+  placeholderStyle?: StyleProps
+}
+
+export type SortableCustomization = {
+  autoScrollThreshold: number;
+  autoScrollSpeed: number;
+  animationConfig: WithSpringConfig;
+  scrollEnabled: boolean;
+  dragHitSlop: PanGestureHandlerProperties['hitSlop'];
+  activationDistance: number;
+  dragItemOverflow: boolean;
+};
+
+export interface NodeListProps<ID> extends TreeItemCustomizations<ID>, SortableProps<ID> {
     treeFlashListProps?: TreeFlatListProps;
     storeId: string;
+    draggableProps?: SortableCustomization
 }
 
 export interface TreeViewProps<ID = string> extends Omit<NodeListProps<ID>, "storeId"> {
@@ -78,6 +103,7 @@ export interface TreeViewProps<ID = string> extends Omit<NodeListProps<ID>, "sto
     preExpandedIds?: ID[];
 
     selectionPropagation?: SelectionPropagation;
+    draggableProps?: SortableCustomization
 }
 
 type CheckboxProps = Omit<RNPaperCheckboxAndroidProps, "onPress" | "status">;
@@ -122,7 +148,13 @@ export interface TreeViewRef<ID = string> {
     setSearchText: (searchText: string, searchKeys?: string[]) => void;
 }
 
+
 export interface SelectionPropagation {
     toChildren?: boolean;
     toParents?: boolean;
 }
+
+export type PartialListRenderItem<TItem> = (
+  info: Omit<Partial<ListRenderItemInfo<TItem>>, 'item' | 'index'> & {item: ListRenderItemInfo<TItem>['item']; index: number}
+) => React.ReactElement | null;
+
