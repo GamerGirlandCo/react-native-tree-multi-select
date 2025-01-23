@@ -1,6 +1,7 @@
 export interface TreeNode<ID> {
     id: ID;
     name: string;
+    index: number;
     children?: TreeNode<ID>[];
 }
 
@@ -10,6 +11,7 @@ function generateNode<ID = string>(id: ID, idx: number, level: number, maxLevel:
     const node: TreeNode<ID> = {
         id: nid,
         name: `Node ${nid}`,
+        index: idx
     };
 
     if (level < maxLevel) {
@@ -21,7 +23,7 @@ function generateNode<ID = string>(id: ID, idx: number, level: number, maxLevel:
         }
     }
 
-    return node;
+    return node as TreeNode<ID>;
 }
 
 // This function generates a list of TreeNodes
