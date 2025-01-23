@@ -79,7 +79,7 @@ function _CustomNodeRowView<ID = string>(props: NodeRowProps<ID>) {
     );
 }
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
     verticalLineStyle: {
         borderLeftWidth: 1,
         height: '110%',
